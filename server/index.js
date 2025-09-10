@@ -11,12 +11,18 @@ import { parseRanges } from "./utils.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// persistent disk on Render
+// Use writable directory for Render deployment
 const DATA_DIR = process.env.DATA_DIR
   ? process.env.DATA_DIR
   : path.join(__dirname, "..", "data");
-  const OUT_DIR  = path.join(DATA_DIR, "outputs");
-const TMP_DIR  = path.join(DATA_DIR, "tmp");
+  
+// For Render, use tmp directory if DATA_DIR is not writable
+const OUT_DIR = process.env.NODE_ENV === 'production' 
+  ? path.join(process.cwd(), "outputs")
+  : path.join(DATA_DIR, "outputs");
+const TMP_DIR = process.env.NODE_ENV === 'production'
+  ? path.join(process.cwd(), "tmp")
+  : path.join(DATA_DIR, "tmp");
 
 const app = express();
 
@@ -44,8 +50,24 @@ app.use("/files", express.static(OUT_DIR, {
 }));
 
 async function ensureDirs() {
-  await mkdir(OUT_DIR, { recursive: true });
-  await mkdir(TMP_DIR,  { recursive: true });
+  try {
+    await mkdir(OUT_DIR, { recursive: true });
+    await mkdir(TMP_DIR, { recursive: true });
+    console.log(`Directories created: ${OUT_DIR}, ${TMP_DIR}`);
+  } catch (error) {
+    console.error("Error creating directories:", error.message);
+    // Try alternative directory
+    const altOutDir = path.join(process.cwd(), "outputs");
+    const altTmpDir = path.join(process.cwd(), "tmp");
+    try {
+      await mkdir(altOutDir, { recursive: true });
+      await mkdir(altTmpDir, { recursive: true });
+      console.log(`Using alternative directories: ${altOutDir}, ${altTmpDir}`);
+    } catch (altError) {
+      console.error("Failed to create alternative directories:", altError.message);
+      throw new Error("Cannot create required directories for file storage");
+    }
+  }
 }
 ensureDirs();
 
