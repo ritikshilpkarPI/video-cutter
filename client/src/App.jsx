@@ -18,6 +18,7 @@ export default function App() {
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "/api";
+      console.log("Making API call to:", `${apiUrl}/cut`);
       const resp = await fetch(`${apiUrl}/cut`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -25,6 +26,12 @@ export default function App() {
       });
       
       setProgress("Processing video segments...");
+      
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = resp.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Backend server is not running. Please deploy the backend first.");
+      }
       
       const data = await resp.json();
       if (!data.ok) throw new Error(data.error || "Unknown error");
