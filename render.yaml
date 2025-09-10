@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: video-cutter-api
+    env: node
+    plan: free
+    buildCommand: |
+      cd server && npm install
+      cd ../client && npm install && npm run build
+    startCommand: |
+      cd server && NODE_ENV=production node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: clips
+      mountPath: /data
+      sizeGB: 5
